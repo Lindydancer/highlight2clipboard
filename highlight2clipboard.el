@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015 Anders Lindgren
 
 ;; Author: Anders Lindgren
-;; Version: 0.0.0
+;; Version: 0.0.1
 ;; Created: 2015-06-17
 ;; Package-Requires: ((htmlize "1.47"))
 ;; Keywords: tools
@@ -28,7 +28,7 @@
 ;; syntax highlighted source code into word processors and mail
 ;; editors.
 ;;
-;; This package requires Ruby to be installed and found in the path.
+;; On MS-Windows, Ruby must be installed.
 ;;
 ;; Usage:
 ;;
@@ -130,6 +130,7 @@
 ;; Global minor mode
 ;;
 
+;;;###autoload
 (define-minor-mode highlight2clipboard-mode
   "When active, cuts and copies are exported with formatting to the clipboard."
   nil
@@ -139,7 +140,7 @@
   :group 'highlight2clipboard
   ;; This will issue an error on unsupported systems, preventing our
   ;; hooks to be installed.
-  (highlight2clipboard-system-type)
+  (highlight2clipboard-set-defaults)
   (setq interprogram-cut-function
         (if highlight2clipboard-mode
             'highlight2clipboard-copy-to-clipboard
@@ -164,14 +165,6 @@
     (font-lock-fontify-region (point-min) (point-max))))
 
 
-(defun highlight2clipboard-system-type ()
-  "The system type, as a string matching scripts in the `bin' directory.
-
-An error is issued when used on unsupported systems."
-  (cond ((eq system-type 'darwin) "osx")
-        ((memq system-type '(windows-nt cygwin)) "w32")
-        (t (error "Unsupported system: %s" system-type))))
-
 ;;;###autoload
 (defun highlight2clipboard-copy-region-to-clipboard (beg end)
   "Copy region with formatting to system clipboard.
@@ -194,12 +187,12 @@ are fully fontified."
   (highlight2clipboard-copy-region-to-clipboard (point-min) (point-max)))
 
 
-;;;###autoload
 (defun highlight2clipboard-copy-to-clipboard (text)
   "Copy TEXT with formatting to the system clipboard."
   (setq highlight2clipboard--last-text text)
   ;; Set the normal clipboard string(s).
   (funcall highlight2clipboard--original-interprocess-cut-function text)
+  (highlight2clipboard-set-defaults)
   ;; Add a html version to the clipboard.
   (let ((file-name-html (concat highlight2clipboard--temp-file-base-name
                                 ".html")))
@@ -211,7 +204,10 @@ are fully fontified."
             (let ((coding-system-for-write 'utf-8))
               (goto-char (point-min))
               (let ((p (if (re-search-forward "<pre>" nil t)
-                           (match-beginning 0)
+                           (prog1
+                               (match-beginning 0)
+                             ;; Remove extra newline.
+                             (delete-char 1))
                          (point-min))))
                 (goto-char p)
                 (insert "<meta charset='utf-8'>")
@@ -221,16 +217,48 @@ are fully fontified."
                             (point-max))))
                   (write-region p p2 file-name-html nil :silent)))))
           (kill-buffer html-buffer))))
-    (call-process
-     "ruby"
-     nil
-     0                                  ; <- Discard and don't wait
-     nil
-     (concat highlight2clipboard--directory
-             "bin/highlight2clipboard-"
-             (highlight2clipboard-system-type)
-             ".rb")
-     file-name-html)))
+    (when highlight2clipboard--add-html-to-clipboard-function
+      (funcall highlight2clipboard--add-html-to-clipboard-function
+               file-name-html))))
+
+
+;; ------------------------------------------------------------
+;; System-specific support.
+;;
+
+(defvar highlight2clipboard--add-html-to-clipboard-function nil)
+
+(defun highlight2clipboard-set-defaults ()
+  "Set up highlight2clipboard, or issue an error if system not supported."
+  (unless highlight2clipboard--add-html-to-clipboard-function
+    (setq highlight2clipboard--add-html-to-clipboard-function
+          (cond ((eq system-type 'darwin)
+                 #'highlight2clipboard--add-html-to-clipboard-osx)
+                ((memq system-type '(windows-nt cygwin))
+                 #'highlight2clipboard--add-html-to-clipboard-w32)
+                (t (error "Unsupported system: %s" system-type))))))
+
+
+(defun highlight2clipboard--add-html-to-clipboard-osx (file-name)
+  (call-process
+   "python"
+   nil
+   0                                  ; <- Discard and don't wait
+   nil
+   (concat highlight2clipboard--directory
+           "bin/highlight2clipboard-osx.py")
+   file-name))
+
+
+(defun highlight2clipboard--add-html-to-clipboard-w32 (file-name)
+  (call-process
+   "ruby"
+   nil
+   0                                  ; <- Discard and don't wait
+   nil
+   (concat highlight2clipboard--directory
+           "bin/highlight2clipboard-w32.rb")
+   file-name))
 
 (provide 'highlight2clipboard)
 

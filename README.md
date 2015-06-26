@@ -1,14 +1,14 @@
 # highlight2clipboard - Copy text to clipboard with highlighting
 
 *Author:* Anders Lindgren<br>
-*Version:* 0.0.0<br>
+*Version:* 0.0.1<br>
 
 Support for copying text with formatting information, like color,
 to the system clipboard. Concretely, this allows you to paste
 syntax highlighted source code into word processors and mail
 editors.
 
-This package requires Ruby to be installed and found in the path.
+On MS-Windows, Ruby must be installed.
 
 ## Usage
 
