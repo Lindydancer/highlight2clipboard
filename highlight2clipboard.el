@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015 Anders Lindgren
 
 ;; Author: Anders Lindgren
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; Created: 2015-06-17
 ;; Package-Requires: ((htmlize "1.47"))
 ;; Keywords: tools
@@ -114,13 +114,15 @@
 ;; --------------------
 
 (defun highlight2clipboard-interprogram-paste-function ()
-  (let ((clipboard
-         (funcall highlight2clipboard--original-interprocess-paste-function)))
-    (if (and highlight2clipboard--last-text
-             (string= clipboard highlight2clipboard--last-text))
-        highlight2clipboard--last-text
-      (setq highlight2clipboard--last-text nil)
-      clipboard)))
+  (and highlight2clipboard--original-interprocess-paste-function
+       (let ((clipboard
+              (funcall
+               highlight2clipboard--original-interprocess-paste-function)))
+         (if (and highlight2clipboard--last-text
+                  (string= clipboard highlight2clipboard--last-text))
+             highlight2clipboard--last-text
+           (setq highlight2clipboard--last-text nil)
+           clipboard))))
 
 (setq interprogram-paste-function
       'highlight2clipboard-interprogram-paste-function)
@@ -191,7 +193,8 @@ are fully fontified."
   "Copy TEXT with formatting to the system clipboard."
   (setq highlight2clipboard--last-text text)
   ;; Set the normal clipboard string(s).
-  (funcall highlight2clipboard--original-interprocess-cut-function text)
+  (when highlight2clipboard--original-interprocess-cut-function
+    (funcall highlight2clipboard--original-interprocess-cut-function text))
   (highlight2clipboard-set-defaults)
   ;; Add a html version to the clipboard.
   (let ((file-name-html (concat highlight2clipboard--temp-file-base-name
