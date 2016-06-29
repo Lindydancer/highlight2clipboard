@@ -240,7 +240,9 @@ are fully fontified."
                 ((memq system-type '(windows-nt cygwin))
                  #'highlight2clipboard--add-html-to-clipboard-w32)
                 ((eq system-type 'gnu/linux)
-                  #'highlight2clipboard--add-html-to-clipboard-linux)
+                 (if (not (executable-find "xclip"))
+                     (error "Xclip not found. Please install it to use this package on Linux.")
+                   #'highlight2clipboard--add-html-to-clipboard-linux))
                 (t (error "Unsupported system: %s" system-type))))))
 
 
