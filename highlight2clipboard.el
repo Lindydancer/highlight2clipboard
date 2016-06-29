@@ -28,8 +28,8 @@
 ;; syntax highlighted source code into word processors and mail
 ;; editors.
 ;;
-;; On MS-Windows, Ruby must be installed.
-;;
+;; On MS-Windows, Ruby must be installed. For Linux the program xclip
+;; is needed (tested with v. 0.12).
 ;; Usage:
 ;;
 ;; * `M-x highlight2clipboard-copy-region-to-clipboard RET' -- Copy
@@ -45,7 +45,7 @@
 ;; Supported systems:
 ;;
 ;; Copying formatted text to the clipboard is highly system specific.
-;; Currently, Mac OS X and MS-Windows are supported. Contributions for
+;; Currently, Mac OS X, MS-Windows and Linux are supported. Contributions for
 ;; other systems are most welcome.
 ;;
 ;; Known problems:
@@ -239,6 +239,8 @@ are fully fontified."
                  #'highlight2clipboard--add-html-to-clipboard-osx)
                 ((memq system-type '(windows-nt cygwin))
                  #'highlight2clipboard--add-html-to-clipboard-w32)
+                ((eq system-type 'gnu/linux)
+                  #'highlight2clipboard--add-html-to-clipboard-linux)
                 (t (error "Unsupported system: %s" system-type))))))
 
 
@@ -262,6 +264,16 @@ are fully fontified."
    (concat highlight2clipboard--directory
            "bin/highlight2clipboard-w32.rb")
    file-name))
+
+
+(defun highlight2clipboard--add-html-to-clipboard-linux (file-name)
+  (apply
+   'start-process "xclip" "*xclip*"
+   (split-string
+    (format
+     "xclip -verbose -i %s -t text/html -selection clipboard"
+     file-name) " ")))
+
 
 (provide 'highlight2clipboard)
 
