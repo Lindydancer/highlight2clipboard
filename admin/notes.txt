@@ -1,6 +1,0 @@
-OS X
-----
-
-On OS X, you can inspect the clipboard by issuing:
-
-  osascript -e "the clipboard as record"

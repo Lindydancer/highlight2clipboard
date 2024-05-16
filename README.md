@@ -1,7 +1,7 @@
 # highlight2clipboard - Copy text to clipboard with highlighting
 
 *Author:* Anders Lindgren<br>
-*Version:* 0.0.2<br>
+*Version:* 0.0.3<br>
 
 Support for copying text with formatting information, like color,
 to the system clipboard. Concretely, this allows you to paste
@@ -20,13 +20,28 @@ On MS-Windows, Ruby must be installed.
   copies and cuts are exported, with formatting information, to the
   clipboard.
 
-### Supported systems
+## Supported systems
 
 Copying formatted text to the clipboard is highly system specific.
 Currently, Mac OS X and MS-Windows are supported. Contributions for
 other systems are most welcome.
 
-### Known problems
+### Windows
+
+On Windows, a support script written in Ruby is used. For this to
+work, Ruby most be installed on the system.
+
+### macOS
+
+On macOS, a support script written in python is used to access the
+clipboard. The module `AppKit` must be installed. This can be done
+using the following command:
+
+    pip install -U PyObjC
+
+You might need to use a version-specific variant, such as `pip3`.
+
+## Known problems
 
 Font Lock mode, the system providing syntax highlighting in Emacs,
 use "lazy highlighting". Effectively, this mean that only the

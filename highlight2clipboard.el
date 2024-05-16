@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015 Anders Lindgren
 
 ;; Author: Anders Lindgren
-;; Version: 0.0.2
+;; Version: 0.0.3
 ;; Created: 2015-06-17
 ;; Package-Requires: ((htmlize "1.47"))
 ;; Keywords: tools
@@ -29,7 +29,7 @@
 ;; editors.
 ;;
 ;; On MS-Windows, Ruby must be installed.
-;;
+
 ;; Usage:
 ;;
 ;; * `M-x highlight2clipboard-copy-region-to-clipboard RET' -- Copy
@@ -41,13 +41,28 @@
 ;; * Highlight2clipboard mode -- Global minor mode, when enabled, all
 ;;   copies and cuts are exported, with formatting information, to the
 ;;   clipboard.
-;;
+
 ;; Supported systems:
 ;;
 ;; Copying formatted text to the clipboard is highly system specific.
 ;; Currently, Mac OS X and MS-Windows are supported. Contributions for
 ;; other systems are most welcome.
 ;;
+;; Windows:
+;;
+;; On Windows, a support script written in Ruby is used. For this to
+;; work, Ruby most be installed on the system.
+;;
+;; macOS:
+;;
+;; On macOS, a support script written in python is used to access the
+;; clipboard. The module `AppKit' must be installed. This can be done
+;; using the following command:
+;;
+;;     pip install -U PyObjC
+;;
+;; You might need to use a version-specific variant, such as `pip3'.
+
 ;; Known problems:
 ;;
 ;; Font Lock mode, the system providing syntax highlighting in Emacs,
@@ -109,7 +124,7 @@
 ;; Interprogram functions
 ;;
 
-(setq interprogram-cut-function 'highlight2clipboard-copy-to-clipboard)
+(setq interprogram-cut-function #'highlight2clipboard-copy-to-clipboard)
 
 ;; --------------------
 
@@ -145,7 +160,7 @@
   (highlight2clipboard-set-defaults)
   (setq interprogram-cut-function
         (if highlight2clipboard-mode
-            'highlight2clipboard-copy-to-clipboard
+            #'highlight2clipboard-copy-to-clipboard
           highlight2clipboard--original-interprocess-cut-function)))
 
 
@@ -189,7 +204,10 @@ are fully fontified."
   (highlight2clipboard-copy-region-to-clipboard (point-min) (point-max)))
 
 
-(defun highlight2clipboard-copy-to-clipboard (text)
+;; Note: Earlier versions of Emacs passed two arguments to this
+;; function, hence `_ignored'.
+
+(defun highlight2clipboard-copy-to-clipboard (text &optional _ignored)
   "Copy TEXT with formatting to the system clipboard."
   (setq highlight2clipboard--last-text text)
   ;; Set the normal clipboard string(s).
@@ -204,6 +222,10 @@ are fully fontified."
       (let ((htmlize-output-type 'inline-css))
         (let ((html-buffer (htmlize-buffer)))
           (with-current-buffer html-buffer
+            ;; Disable undo. (Without this, an undo boundary is
+            ;; created in the original buffer, thus changing the
+            ;; behaviour for the user.)
+            (buffer-disable-undo)
             (let ((coding-system-for-write 'utf-8))
               (goto-char (point-min))
               (let ((p (if (re-search-forward "<pre>" nil t)
@@ -243,25 +265,31 @@ are fully fontified."
 
 
 (defun highlight2clipboard--add-html-to-clipboard-osx (file-name)
-  (call-process
-   "python"
-   nil
-   0                                  ; <- Discard and don't wait
-   nil
-   (concat highlight2clipboard--directory
-           "bin/highlight2clipboard-osx.py")
-   file-name))
+  ;; In case the directory in `default-directory' doesn't exist, Emacs
+  ;; fail to spawn the process.
+  (let ((default-directory exec-directory))
+    (call-process
+     "python"
+     nil
+     0                                  ; <- Discard and don't wait
+     nil
+     (concat highlight2clipboard--directory
+             "bin/highlight2clipboard-osx.py")
+     file-name)))
 
 
 (defun highlight2clipboard--add-html-to-clipboard-w32 (file-name)
-  (call-process
-   "ruby"
-   nil
-   0                                  ; <- Discard and don't wait
-   nil
-   (concat highlight2clipboard--directory
-           "bin/highlight2clipboard-w32.rb")
-   file-name))
+  ;; In case the directory in `default-directory' doesn't exist, Emacs
+  ;; fail to spawn the process.
+  (let ((default-directory exec-directory))
+    (call-process
+     "ruby"
+     nil
+     0                                  ; <- Discard and don't wait
+     nil
+     (concat highlight2clipboard--directory
+             "bin/highlight2clipboard-w32.rb")
+     file-name)))
 
 (provide 'highlight2clipboard)
 

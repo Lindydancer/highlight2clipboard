@@ -55,9 +55,9 @@ def get_pb():
     return content
 
 if len(sys.argv) != 2:
-    print "Add HTML text to pasteboard"
-    print
-    print "  Usage: " + os.path.basename(__file__) + " file.html"
+    print("Add HTML text to pasteboard")
+    print()
+    print("  Usage: " + os.path.basename(__file__) + " file.html")
     exit(0)
 
 with open (sys.argv[1], "r") as myfile:
